@@ -6,3 +6,145 @@ datasource db {
   provider = "postgresql"
   url      = env("POSTGRES_URI")
 }
+
+model User {
+  id String @id @default(cuid())
+
+  email    String @unique
+  password String
+  fullName String
+
+  role Role @default(USER)
+
+  refreshTokens RefreshToken[]
+
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+model RefreshToken {
+  id String @id @default(cuid())
+
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  tokenHash String
+  deviceInfo String?
+  ip String?
+  lastUsed DateTime?
+  expiresAt DateTime
+  revoked Boolean @default(false)
+  replacedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Airport {
+  id String @id @default(cuid())
+
+  code    String @unique
+  name    String
+  city    String
+  country String
+
+  departingFlights Flight[] @relation("DepartureAirport")
+  arrivingFlights  Flight[] @relation("ArrivalAirport")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Flight {
+  id String @id @default(cuid())
+
+  flightNumber String @unique
+
+  departureAirport Airport @relation("DepartureAirport", fields: [departureAirportId], references: [id])
+  arrivalAirport   Airport @relation("ArrivalAirport", fields: [arrivalAirportId], references: [id])
+
+  departureAirportId String
+  arrivalAirportId   String
+
+  price          Decimal
+  availableSeats Int
+
+  departureTime DateTime
+  arrivalTime   DateTime
+
+  airline String
+
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departureAirportId])
+  @@index([arrivalAirportId])
+  @@index([departureTime])
+}
+
+model Booking {
+  id String @id @default(cuid())
+
+  status StatusBooking @default(PENDING)
+
+  seatNumber String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  flight   Flight @relation(fields: [flightId], references: [id])
+  flightId String
+
+  payment Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([flightId, seatNumber])
+}
+
+model Payment {
+  id String @id @default(cuid())
+
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String  @unique
+
+  method MethodPayment
+  amount Decimal
+
+  status StatusPayment @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum StatusBooking {
+  PENDING
+  CONFIRMED
+  CANCELED
+}
+
+enum MethodPayment {
+  CARD
+  APPLE_PAY
+  GOOGLE_PAY
+  YOOKASSA
+  STRIPE
+  STARS
+}
+
+enum StatusPayment {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum Role {
+  USER
+  ADMIN
+}
