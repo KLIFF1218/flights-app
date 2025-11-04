@@ -3,9 +3,7 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
-  IsIn,
   IsInt,
-  IsNotEmpty,
   IsString,
   ValidateNested,
 } from 'class-validator';
@@ -24,14 +22,13 @@ export class DirectionDto {
   @IsString()
   destination: string;
 
-  @IsArray()
-  @IsDateString({}, { each: true })
-  date: string[];
+  @IsDateString()
+  date: string;
 }
 
 export class PassengersDto {
   @IsInt()
-  adulst: number;
+  adults: number;
 
   @IsInt()
   children: number;
