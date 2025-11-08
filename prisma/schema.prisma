@@ -96,20 +96,26 @@ model Booking {
 
   status StatusBooking @default(PENDING)
 
-  seatNumber Int
+  seats Int
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
+  passengerName     String
+  passengerLastName String
+  passengerEmail    String
+
+  tripClass String
+
   flight   Flight @relation(fields: [flightId], references: [id])
   flightId String
 
-  payment Payment?
+  transaction Transaction?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([flightId, seatNumber])
+  // @@unique([flightId, seatNumber])
 }
 
 model Transaction {
@@ -117,16 +123,8 @@ model Transaction {
 
   status TransactionStatus @default(PENDING)
 
-  amount Decimal
-
-  origin      String
-  destination String
-
-  departureDate DateTime @map("departureDate")
-  arrivalDate   DateTime @map("arrival_date")
-
-  departureAirportName String? @map("departure_airport_name")
-  arrivalAirportName   String? @map("arrival_airport_name")
+  amount   Decimal
+  currency Currency
 
   tripClass String @map("trip_class")
 
@@ -134,13 +132,11 @@ model Transaction {
   userId String @map("user_id")
 
   booking   Booking @relation(fields: [bookingId], references: [id])
-  bookingId String @map("booking_id")
+  bookingId String  @unique @map("booking_id")
 
-  adults   Int
-  children Int
-  infants  Int
-
-  provider PaymentProvider?
+  provider     PaymentProvider?
+  providerMeta Json?            @map("provider_meta")
+  externalId   String?          @map("external_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -152,6 +148,7 @@ enum StatusBooking {
   PENDING
   CONFIRMED
   CANCELED
+  FAILED
 }
 
 enum MethodPayment {
@@ -161,6 +158,12 @@ enum MethodPayment {
   YOOKASSA
   STRIPE
   STARS
+}
+
+enum Currency {
+  USD
+  EUR
+  RUB
 }
 
 enum StatusPayment {
@@ -178,6 +181,7 @@ enum TransactionStatus {
   PENDING
   SUCCEED
   FAILED
+  CANCELED
 }
 
 enum PaymentProvider {
