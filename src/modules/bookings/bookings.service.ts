@@ -1,6 +1,8 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -84,7 +86,10 @@ export class BookingsService {
       );
     } catch (error) {
       this.logger.error('Ошибка при создании бронирования: ', error, dto);
-      throw new BadRequestException('Не удалось создать бронирование');
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Не удалось создать бронирование');
     }
   }
 
