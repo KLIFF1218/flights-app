@@ -15,6 +15,7 @@ import ms from 'ms';
 import { Request, Response } from 'express';
 import { isDev } from 'src/common/utils/is-dev';
 import { LoginDto } from './dto/login.dto';
+import { PinoLoggerService } from 'src/common/logger/pino-logger.service';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly logger: PinoLoggerService,
   ) {
     this.JWT_EXPIRES_ACCESS_TOKEN = ms(
       configService.getOrThrow<ms.StringValue>('JWT_EXPIRES_ACCESS_TOKEN'),
@@ -33,9 +35,11 @@ export class AuthService {
       configService.getOrThrow<ms.StringValue>('JWT_EXPIRES_REFRESH_TOKEN'),
     );
     this.COOKIES_DOMAIN = configService.getOrThrow<string>('COOKIES_DOMAIN');
+    this.logger.setContext(AuthService.name);
   }
 
-  async register(dto: RegisterDto, res: Response, req) {
+  async register(dto: RegisterDto, res: Response, req: Request) {
+    this.logger.log('traceId same?')
     const { email, password, fullName } = dto;
     const exist = await this.prismaService.user.findUnique({
       where: {
@@ -92,7 +96,6 @@ export class AuthService {
       req.ip;
 
     // доделать потом нужно логику проверки рефреша, когда несколько устройств
-
   }
 
   private async auth(user: User, res: Response, req: Request) {
