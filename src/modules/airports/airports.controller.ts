@@ -24,7 +24,7 @@ import { AirportResponseDto } from './dto/aiport-response.dto';
 @ApiTags('Airports')
 @ApiBearerAuth()
 @Protected()
-@Roles('ADMIN')
+@Roles('ADMIN', 'USER')
 @Controller('airports')
 export class AirportsController {
   constructor(private readonly airportsService: AirportsService) {}
