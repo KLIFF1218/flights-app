@@ -21,7 +21,9 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<Request>();
+    const req = context
+      .switchToHttp()
+      .getRequest<Request & { user: User | undefined }>();
 
     const rateLimitOptions = this.reflector.get<RateLimitOptions>(
       RATE_LIMIT_METADATA,
