@@ -8,9 +8,11 @@ import { Request } from 'express';
 
 export const Authorized = createParamDecorator(
   (data: keyof User, ctx: ExecutionContext) => {
-    const req = ctx.switchToHttp().getRequest<Request>();
+    const req = ctx
+      .switchToHttp()
+      .getRequest<Request & { user: User | undefined }>();
 
-    const user = req.user as User | undefined;
+    const user = req.user;
 
     if (!user)
       throw new UnauthorizedException('Пользователь не зарегистрирован');
