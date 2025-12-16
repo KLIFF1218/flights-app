@@ -86,9 +86,9 @@ model Flight {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  //   @@index([departureAirportId])
-  //   @@index([arrivalAirportId])
-  //   @@index([departureTime])
+  @@index([departureAirportId])
+  @@index([arrivalAirportId])
+  @@index([departureDate])
 }
 
 model Booking {
