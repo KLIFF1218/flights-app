@@ -45,7 +45,7 @@ async function bootstrap() {
 
   try {
     await app.listen(port ?? 3000);
-    logger.log(`Server is running at ${host}`);
+    logger.log(`Server is running at http://${host}:${port}`);
   } catch (error) {
     logger.error(`Failed to start server ${error.message}`);
     process.exit(1);
