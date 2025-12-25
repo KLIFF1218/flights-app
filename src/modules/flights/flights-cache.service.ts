@@ -1,39 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { Flight } from '@prisma/client';
 import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
-export class FlightsCacheService {
+export class FlightsSearchStore {
   constructor(private readonly redisService: RedisService) {}
-  private prefix = 'flights:';
 
-  getKey(origin: string, destination: string, date: string) {
-    return `${this.prefix}${origin}-${destination}-${date}`;
-  }
-  async getCachedFlighs(
-    origin: string,
-    destination: string,
-    date: string,
-  ): Promise<Flight[] | null> {
-    return await this.redisService.get<Flight[]>(
-      this.getKey(origin, destination, date),
-    );
+  private prefix = 'flights:search:';
+
+  private getKey(searchId: string) {
+    return `${this.prefix}${searchId}`;
   }
 
-  async setCachedFlights(
-    origin: string,
-    destination: string,
-    date: string,
-    flights: Flight[],
-    ttl?: number,
+  async saveSearchResults(
+    searchId: string,
+    flightOffers: any[],
+    ttlSeconds = 90000,
   ) {
-    await this.redisService.set<Flight[]>(
-      this.getKey(origin, destination, date),
-      flights,
-      ttl,
+    await this.redisService.set(
+      this.getKey(searchId),
+      flightOffers,
+      ttlSeconds,
     );
   }
-  async clearCacheByPrefix() {
-    await this.redisService.delByPrefix(this.prefix);
+
+  async getOffer(searchId: string, offerId: string) {
+    const offers = await this.redisService.get<any[]>(this.getKey(searchId));
+    if (!offers) return null;
+
+    return offers.find((o) => o.id === offerId);
+  }
+
+  async clearSearch(searchId: string) {
+    await this.redisService.delete(this.getKey(searchId));
   }
 }
