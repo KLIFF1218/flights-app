@@ -7,15 +7,14 @@ import { User } from '@prisma/client';
 import { Request } from 'express';
 
 export const Authorized = createParamDecorator(
-  (data: keyof User, ctx: ExecutionContext) => {
-    const req = ctx
-      .switchToHttp()
-      .getRequest<Request & { user: User | undefined }>();
+  (data: keyof User | undefined, ctx: ExecutionContext) => {
+    const req = ctx.switchToHttp().getRequest<Request & { user?: User }>();
 
     const user = req.user;
 
-    if (!user)
-      throw new UnauthorizedException('Пользователь не зарегистрирован');
+    if (!user) {
+      throw new UnauthorizedException('Пользователь не авторизован');
+    }
 
     return data ? user[data] : user;
   },
