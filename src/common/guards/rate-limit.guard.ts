@@ -21,25 +21,18 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context
-      .switchToHttp()
-      .getRequest<Request & { user: User | undefined }>();
+    const req = context.switchToHttp().getRequest<Request & { user?: User }>();
 
-    const rateLimitOptions = this.reflector.get<RateLimitOptions>(
+    const rateLimitOptions = this.reflector.getAllAndOverride<RateLimitOptions>(
       RATE_LIMIT_METADATA,
-      context.getHandler(),
+      [context.getHandler(), context.getClass()],
     );
 
     if (!rateLimitOptions) return true;
 
     const limiter = this.rateLimiter.createLimiter(rateLimitOptions);
 
-    const user = req.user as User | undefined;
-
-    const userId = user?.id;
-    const ip = req.ip;
-
-    const key = userId ? `user:${userId}` : `ip:${ip}`;
+    const key = req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`;
 
     try {
       await this.rateLimiter.consume(limiter, key);
