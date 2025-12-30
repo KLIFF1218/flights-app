@@ -1,23 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { getCorsConfig } from './config/cors.config';
-import { PinoLoggerService } from './common/logger/pino-logger.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { getSwaggerConfig } from './config/swagger.config';
 import { SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import './telemetry';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
 
-  // const logger = new Logger(AppModule.name);
-  const logger = app.get(PinoLoggerService);
-  app.useLogger(logger);
+  app.useLogger(app.get(Logger));
+
   const config = app.get(ConfigService);
 
   app.set('trust proxy', true);
@@ -45,9 +44,7 @@ async function bootstrap() {
 
   try {
     await app.listen(port ?? 3000);
-    logger.log(`Server is running at http://${host}:${port}`);
   } catch (error) {
-    logger.error(`Failed to start server ${error.message}`);
     process.exit(1);
   }
 }
