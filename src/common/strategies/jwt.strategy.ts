@@ -1,8 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
-import { PrismaService } from 'src/infra/prisma/prisma.service';
+import { PrismaService } from 'src/infra/db/prisma/prisma.service';
 import { JwtPayload } from 'src/modules/auth/interfaces';
 
 @Injectable()
@@ -25,7 +29,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       },
     });
 
-    if (!user) throw new NotFoundException('Такого пользователя нет');
+    if (!user) {
+      throw new UnauthorizedException('Invalid token');
+    }
     return user;
   }
 }
