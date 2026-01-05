@@ -1,10 +1,10 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { PaymentService } from './payment.service';
-import { PrismaService } from 'src/infra/prisma/prisma.service';
+import { PrismaService } from 'src/infra/db/prisma/prisma.service';
 import { YoomoneyModule } from './providers/yoomoney/yoomoney.module';
 import { WebhookModule } from './webhook/webhook.module';
 import { PaymentHandler } from './payment.handler';
-import { MailModule } from 'src/libs/mail/mail.module';
+import { MailModule } from 'src/infra/mail/mail.module';
 
 @Module({
   providers: [PaymentService, PrismaService, PaymentHandler],
