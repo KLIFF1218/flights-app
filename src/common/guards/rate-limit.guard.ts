@@ -4,7 +4,7 @@ import {
   ExecutionContext,
   ForbiddenException,
 } from '@nestjs/common';
-import { RateLimiterService } from '../../libs/rate-limiter/rate-limiter-redis.service';
+import { RateLimiterService } from '../../infra/rate-limiter/rate-limiter-redis.service';
 import {
   RATE_LIMIT_METADATA,
   RateLimitOptions,
