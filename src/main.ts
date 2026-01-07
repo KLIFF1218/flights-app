@@ -1,51 +1,78 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { ValidationPipe } from '@nestjs/common';
-import { getCorsConfig } from './config/cors.config';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { getSwaggerConfig } from './config/swagger.config';
 import { SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
-import './telemetry';
 import { Logger } from 'nestjs-pino';
 
-async function bootstrap() {
+import { getCorsConfig } from './config/cors.config';
+import { getSwaggerConfig } from './config/swagger.config';
+
+import './telemetry';
+
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
 
-  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger);
+  app.useLogger(logger);
 
   const config = app.get(ConfigService);
 
-  app.set('trust proxy', true);
-
   const port = config.getOrThrow<number>('HTTP_PORT');
-  const host = config.getOrThrow<string>('HTTP_HOST');
+  const host = config.get<string>('HTTP_HOST', '0.0.0.0');
+  const env = config.getOrThrow<string>('NODE_ENV');
+
+  app.set('trust proxy', 1);
+  app.use(helmet());
 
   app.enableCors(getCorsConfig(config));
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
-  const swaggerConfig = getSwaggerConfig();
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-
-  SwaggerModule.setup('/docs', app, swaggerDocument, {
-    jsonDocumentUrl: 'openapi.json',
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
   });
 
-  app.use(helmet());
+  if (config.get('SWAGGER_ENABLED') === 'true') {
+    const swaggerConfig = getSwaggerConfig();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  try {
-    await app.listen(port ?? 3000);
-  } catch (error) {
-    process.exit(1);
+    SwaggerModule.setup('/docs', app, document, {
+      jsonDocumentUrl: 'openapi.json',
+    });
+
+    logger.log('Swagger enabled at /docs');
   }
+
+  app.enableShutdownHooks();
+
+  await app.listen(port, host);
+
+  logger.log(
+    {
+      port,
+      host,
+      env,
+    },
+    'HTTP server started',
+  );
 }
-bootstrap();
+
+bootstrap().catch((error) => {
+  console.error('Fatal bootstrap error', error);
+  process.exit(1);
+});
