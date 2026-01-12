@@ -7,7 +7,5 @@ export interface RateLimitOptions {
   duration: number;
 }
 
-export const RateLimit = (
-  options: RateLimitOptions,
-): MethodDecorator & ClassDecorator =>
+export const RateLimit = (options: RateLimitOptions): MethodDecorator & ClassDecorator =>
   SetMetadata(RATE_LIMIT_METADATA, options);
