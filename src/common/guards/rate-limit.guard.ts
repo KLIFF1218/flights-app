@@ -1,14 +1,6 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { RateLimiterService } from '../../infra/rate-limiter/rate-limiter-redis.service';
-import {
-  RATE_LIMIT_METADATA,
-  RateLimitOptions,
-} from '../decorators/rate-limit.decorator';
+import { RATE_LIMIT_METADATA, RateLimitOptions } from '../decorators/rate-limit.decorator';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { User } from '@prisma/client';
