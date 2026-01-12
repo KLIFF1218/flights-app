@@ -13,14 +13,14 @@ model User {
   email    String? @unique
   password String?
   fullName String?
-  vkId      String?  @unique
+  vkId     String? @unique
 
   role Role @default(USER)
 
   refreshTokens RefreshToken[]
+  userDevices   UserDevice[]
 
-  bookings Booking[]
-
+  bookings     Booking[]
   transactions Transaction[]
 
   createdAt DateTime @default(now())
@@ -29,154 +29,117 @@ model User {
   @@index([email])
 }
 
+model UserDevice {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userAgent String?
+  ip        String?
+
+  refreshTokens RefreshToken[]
+
+  createdAt DateTime @default(now())
+  lastSeen  DateTime @updatedAt
+}
+
 model RefreshToken {
   id String @id @default(cuid())
 
-  user         User      @relation(fields: [userId], references: [id])
-  userId       String
-  tokenHash    String
-  deviceInfo   String?
-  ip           String?
-  lastUsed     DateTime?
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String
+
+  deviceInfo String?
+  ip         String?
+
   expiresAt    DateTime
-  revoked      Boolean   @default(false)
+  revokedAt    DateTime?
   replacedById String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Airport {
-  id String @id @default(cuid())
-
-  code    String  @unique
-  name    String?
-  city    String?
-  country String?
-
-  departingFlights Flight[] @relation("DepartureAirport")
-  arrivingFlights  Flight[] @relation("ArrivalAirport")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Flight {
-  id String @id @default(cuid())
-
-  origin      String
-  destination String
-
-  availableSeats Int
-
-  price Decimal
-
-  departureAirport   Airport @relation("DepartureAirport", fields: [departureAirportId], references: [id])
-  departureAirportId String
-
-  arrivalAirport   Airport @relation("ArrivalAirport", fields: [arrivalAirportId], references: [id])
-  arrivalAirportId String
-
-  departureDate DateTime
-  arrivalDate   DateTime
-
-  tripClass String
-
-  bookings Booking[]
+  userDeviceId String?
+  userDevice   UserDevice? @relation(fields: [userDeviceId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([departureAirportId])
-  @@index([arrivalAirportId])
-  @@index([departureDate])
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Booking {
   id String @id @default(cuid())
 
-  status StatusBooking @default(PENDING)
-
-  seats Int
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  passengerName     String
-  passengerLastName String
-  passengerEmail    String
-  bookingNumber String?
+  provider BookingProvider @default(AMADEUS)
 
-  tripClass String
+  status BookingStatus @default(PNR_CREATED)
 
-  flight   Flight @relation(fields: [flightId], references: [id])
-  flightId String
+  pnrLocator    String
+  flightOrderId String
+
+  lastTicketingDate DateTime
+  expiresAt         DateTime
+
+  totalPrice Decimal
+  currency   Currency
+
+  snapshot Json
 
   transaction Transaction?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // @@unique([flightId, seatNumber])
+  @@index([pnrLocator])
+  @@index([flightOrderId])
+  @@index([status])
 }
 
 model Transaction {
   id String @id @default(cuid())
+
+  idempotencyKey String @unique
 
   status TransactionStatus @default(PENDING)
 
   amount   Decimal
   currency Currency
 
-  tripClass String @map("trip_class")
-
+  userId String
   user   User   @relation(fields: [userId], references: [id])
-  userId String @map("user_id")
 
+  bookingId String  @unique
   booking   Booking @relation(fields: [bookingId], references: [id])
-  bookingId String  @unique @map("booking_id")
 
-  provider     PaymentProvider?
-  providerMeta Json?            @map("provider_meta")
-  externalId   String?          @map("external_id")
+  provider     PaymentProvider
+  externalId   String?
+  providerMeta Json?
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("transactions")
+  @@index([externalId])
+  @@index([status])
 }
 
-enum StatusBooking {
-  PENDING
-  CONFIRMED
+enum BookingProvider {
+  AMADEUS
+}
+
+enum BookingStatus {
+  PNR_CREATED
+  SEATS_SELECTED
+  PAYMENT_PENDING
+  PAID
+  TICKETED
   CANCELED
+  EXPIRED
   FAILED
-}
-
-enum MethodPayment {
-  CARD
-  APPLE_PAY
-  GOOGLE_PAY
-  YOOKASSA
-  STRIPE
-  STARS
-}
-
-enum Currency {
-  USD
-  EUR
-  RUB
-}
-
-enum StatusPayment {
-  PENDING
-  SUCCESS
-  FAILED
-}
-
-enum Role {
-  USER
-  ADMIN
 }
 
 enum TransactionStatus {
@@ -186,8 +149,19 @@ enum TransactionStatus {
   CANCELED
 }
 
+enum Currency {
+  USD
+  EUR
+  RUB
+}
+
 enum PaymentProvider {
   YOOKASSA
-  STARS
   STRIPE
+  STARS
+}
+
+enum Role {
+  USER
+  ADMIN
 }
