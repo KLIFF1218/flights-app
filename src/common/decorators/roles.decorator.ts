@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import type { Role } from '@prisma/client';
 
 export const ROLES_KEY = Symbol('roles');
 export const Roles = (...roles: Role[]): MethodDecorator & ClassDecorator =>
