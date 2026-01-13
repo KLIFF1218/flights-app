@@ -1,9 +1,7 @@
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
 import type { YookassaModuleOptions } from 'nestjs-yookassa';
 
-export const getYookassaConfig = (
-  configService: ConfigService,
-): YookassaModuleOptions => {
+export const getYookassaConfig = (configService: ConfigService): YookassaModuleOptions => {
   return {
     shopId: configService.getOrThrow<string>('YOOKASSA_SHOP_ID'),
     apiKey: configService.getOrThrow<string>('YOOKASSA_API_KEY'),

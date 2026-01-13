@@ -1,5 +1,5 @@
-import { ConfigService } from '@nestjs/config';
-import { QueueOptions } from 'bullmq';
+import type { ConfigService } from '@nestjs/config';
+import type { QueueOptions } from 'bullmq';
 import { redisConfig } from './redis.config';
 
 export const getBullmqConfig = (configService: ConfigService): QueueOptions => {
