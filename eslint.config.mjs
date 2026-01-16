@@ -50,7 +50,7 @@ export default tseslint.config(
       'prettier/prettier': [
         'error',
         {
-          endOfLine: 'lf',
+          endOfLine: 'crlf',
         },
       ],
       'no-console': 'off',
