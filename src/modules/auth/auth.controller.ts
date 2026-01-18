@@ -12,21 +12,18 @@ import {
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { AuthResponseDto } from './dto/auth-response.dto';
+import { AuthResponseDto } from './dto/auth.response.dto';
 import type { Request, Response } from 'express';
-import { PinoLoggerService } from 'src/common/logger/pino-logger.service';
-import { Authorized } from 'src/common/decorators';
-import type { User } from '@prisma/client';
+import { Logger } from 'nestjs-pino';
+import { VkIdAuthDto } from './dto/vk-id.auth.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly logger: PinoLoggerService,
-  ) {
-    this.logger.setContext(AuthController.name);
-  }
+    private readonly logger: Logger,
+  ) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Регистрация нового пользователя' })
@@ -39,8 +36,7 @@ export class AuthController {
     description: 'Пользователь успешно зарегистрирован. Возвращает accessToken',
   })
   @ApiBadRequestResponse({
-    description:
-      'Ошибка валидации входных данных (неверный email, короткий пароль и т.д.)',
+    description: 'Ошибка валидации входных данных (неверный email, короткий пароль и т.д.)',
   })
   @ApiConflictResponse({
     description: 'Пользователь с таким email уже существует',
@@ -50,8 +46,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Body() dto: RegisterDto,
   ): Promise<AuthResponseDto> {
-    this.logger.log('logger is very good');
-    return this.authService.register(dto, res, req);
+    return this.authService.register(dto, req, res);
   }
 
   @Post('login')
@@ -65,8 +60,7 @@ export class AuthController {
     description: 'Пользователь успешно авторизован. Возвращает accessToken',
   })
   @ApiBadRequestResponse({
-    description:
-      'Ошибка валидации входных данных (неверный формат email и т.д.)',
+    description: 'Ошибка валидации входных данных (неверный формат email и т.д.)',
   })
   @ApiNotFoundResponse({
     description: 'Неверный email или пароль',
@@ -79,11 +73,19 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Body() dto: LoginDto,
   ): Promise<AuthResponseDto> {
-    return this.authService.login(dto, res, req);
+    return this.authService.login(dto, req, res);
   }
 
-  @Post()
-  async refresh(@Req() req: Request, @Authorized() user: User) {
-    return await this.authService.refresh(req, user.id);
+  @Post('vkontakke')
+  async vkLogin(@Body() dto: VkIdAuthDto) {
+    return this.authService.exchangeVkCode(dto);
+  }
+
+  @Post('refresh')
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    return await this.authService.refresh(req, res);
   }
 }
