@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("POSTGRES_URI")
 }
 
 model User {
@@ -25,8 +24,6 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([email])
 }
 
 model UserDevice {
@@ -59,8 +56,8 @@ model RefreshToken {
   revokedAt    DateTime?
   replacedById String?
 
-  userDeviceId String?
-  userDevice   UserDevice? @relation(fields: [userDeviceId], references: [id])
+  userDeviceId String
+  userDevice   UserDevice @relation(fields: [userDeviceId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -73,13 +70,15 @@ model Booking {
   id String @id @default(cuid())
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   provider BookingProvider @default(AMADEUS)
 
   status BookingStatus @default(PNR_CREATED)
 
-  pnrLocator    String
+  ticketUrl String?
+
+  pnrLocator    String @unique
   flightOrderId String
 
   lastTicketingDate DateTime
@@ -136,6 +135,7 @@ enum BookingStatus {
   SEATS_SELECTED
   PAYMENT_PENDING
   PAID
+  TICKETING
   TICKETED
   CANCELED
   EXPIRED
