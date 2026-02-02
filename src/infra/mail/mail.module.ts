@@ -15,6 +15,15 @@ import { MailProcessor } from './mail.processor';
     }),
     BullModule.registerQueue({
       name: 'mail',
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 10_000,
+        },
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
     }),
   ],
   providers: [MailService, MailProcessor],
