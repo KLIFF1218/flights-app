@@ -4,7 +4,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 export class SeatMapDto {
   @ApiProperty({
     description: 'Идентификатор поиска (search session id)',
-    example: 'search_8f3a2c91',
+    example: '19dcf9c7-c816-47f8-aaa5-b0f7b97fefc4',
   })
   @IsString()
   @IsNotEmpty()
@@ -12,7 +12,7 @@ export class SeatMapDto {
 
   @ApiProperty({
     description: 'Идентификатор предложения (offer id)',
-    example: 'offer_123456',
+    example: '1',
   })
   @IsString()
   @IsNotEmpty()
