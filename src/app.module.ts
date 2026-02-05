@@ -21,6 +21,8 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { RateLimiterService } from './infra/rate-limiter/rate-limiter-redis.service';
 
 import { isDev } from './common/utils';
+import { TicketingModule } from './modules/ticketing/ticketing.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 @Module({
   imports: [
@@ -50,12 +52,9 @@ import { isDev } from './common/utils';
                 }
               : undefined,
 
-            genReqId: (req) =>
-              req.headers['x-request-id'] ?? crypto.randomUUID(),
+            genReqId: (req) => req.headers['x-request-id'] ?? crypto.randomUUID(),
 
-            autoLogging: {
-              ignore: (req) => req.url === '/health',
-            },
+            autoLogging: false,
           },
         };
       },
@@ -84,6 +83,7 @@ import { isDev } from './common/utils';
     PaymentsModule,
     AirportsModule,
     SeatMapModule,
+    TicketingModule,
   ],
 
   providers: [
@@ -92,6 +92,7 @@ import { isDev } from './common/utils';
       provide: APP_GUARD,
       useClass: RateLimitGuard,
     },
+    GlobalExceptionFilter,
   ],
 })
 export class AppModule {}
