@@ -1,2 +1,1 @@
-export * from './create-flight.dto';
-export * from './search-flight.dto';
+export * from './search-flight.request.dto';
