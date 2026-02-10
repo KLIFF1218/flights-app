@@ -5,6 +5,6 @@ import { env } from 'prisma/config';
 export default {
   schema: 'prisma/schema.prisma',
   datasource: {
-    url: env('POSTGRES_URI'),
+    url: env('DATABASE_URL'),
   },
 } satisfies PrismaConfig;
