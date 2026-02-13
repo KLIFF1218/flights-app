@@ -16,6 +16,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { InfraModule } from './infra/infra.module';
 import { MailModule } from './infra/mail/mail.module';
 import { RedisModule } from './redis/redis.module';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { RateLimiterService } from './infra/rate-limiter/rate-limiter-redis.service';
@@ -63,6 +64,13 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     InfraModule,
     RedisModule,
     MailModule,
+
+    PrometheusModule.register({
+      path: '/metrics',
+      defaultMetrics: {
+        enabled: true,
+      },
+    }),
 
     BullModule.forRootAsync({
       inject: [ConfigService],
