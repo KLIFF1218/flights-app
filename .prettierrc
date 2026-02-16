@@ -7,5 +7,10 @@
   "useTabs": false,
   "arrowParens": "always",
   "bracketSpacing": true,
-  "endOfLine": "crlf"
+  "endOfLine": "lf",
+  "proseWrap": "preserve",
+  "htmlWhitespaceSensitivity": "css",
+  "importOrder": ["^@", "^[./]"],
+  "importOrderSortSpecifiers": true,
+  "plugins": ["@trivago/prettier-plugin-sort-imports"]
 }
