@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AirportsService } from './airports.service';
-import { AirportsController } from './airports.controller';
+import { AirportsService } from './services/airports.service';
+import { AirportsController } from './controllers/airports.controller';
 import { FlightsModule } from '../flights/flights.module';
 import { InfraModule } from 'src/infra/infra.module';
 
