@@ -84,11 +84,30 @@ export class S3Service {
     }
   }
 
-  async getDownloadUrl(key: string, expiresIn: number = 3600): Promise<string> {
+  async getDownloadUrl(
+    key: string,
+    options?: {
+      disposition?: 'inline' | 'attachment';
+      fileName?: string;
+      expiresIn?: number;
+    },
+  ): Promise<string> {
+    const {
+      disposition = 'inline',
+      fileName,
+      expiresIn = 3600,
+    } = options || {};
+
+    const finalFileName =
+      fileName ?? key.split('/').pop() ?? 'ticket.pdf';
+
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucket,
         Key: key,
+        ResponseContentDisposition:
+          `${disposition}; filename="${finalFileName}"; filename*=UTF-8''${encodeURIComponent(finalFileName)}`,
+        ResponseContentType: 'application/pdf',
       });
 
       return await getSignedUrl(this.client, command, { expiresIn });
@@ -101,6 +120,7 @@ export class S3Service {
       throw new InternalServerErrorException('Link generation failed');
     }
   }
+
 
   async fileExists(key: string): Promise<boolean> {
     try {
