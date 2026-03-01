@@ -18,19 +18,19 @@ export default tseslint.config(
   eslintPluginPrettierRecommended,
 
   {
-    languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: __dirname,
-      },
+  languageOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    globals: {
+      ...globals.node,
+      ...globals.jest,
+    },
+    parserOptions: {
+      project: ['./tsconfig.json'],
+      tsconfigRootDir: __dirname,
     },
   },
+},
 
   {
     rules: {
@@ -50,7 +50,7 @@ export default tseslint.config(
       'prettier/prettier': [
         'error',
         {
-          endOfLine: 'crlf',
+          endOfLine: 'lf',
         },
       ],
       'no-console': 'off',
