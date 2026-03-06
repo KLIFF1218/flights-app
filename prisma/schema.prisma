@@ -15,7 +15,7 @@ model User {
   lastName String?
   vkId     String? @unique
   
-  isBlocked UserStatus @default(ACTIVE)
+  status UserStatus @default(ACTIVE)
   phone     String?
 
   role Role @default(USER)
@@ -68,6 +68,26 @@ model RefreshToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model Airport {
+  id String @id @default(cuid())
+
+  name String
+  city String?
+  country String
+
+  iataCode String? @unique @db.VarChar(3)
+  icaoCode String? @db.VarChar(4)
+
+  latitude  Float?
+  longitude Float?
+
+  createdAt DateTime @default(now())
+
+  @@index([iataCode])
+  @@index([city])
+  @@index([name])
 }
 
 model Booking {
@@ -153,6 +173,7 @@ enum BookingStatus {
 }
 
 enum TransactionStatus {
+  AUTHORIZED
   PENDING
   SUCCEED
   FAILED
