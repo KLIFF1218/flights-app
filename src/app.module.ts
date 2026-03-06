@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 
 import { LoggerModule } from 'nestjs-pino';
+import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { BullModule } from '@nestjs/bullmq';
 
-import { UsersModule } from './modules/users/users.module';
+
 import { FlightsModule } from './modules/flights/flights.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { PaymentsModule } from './modules/payment/payment.module';
@@ -23,7 +24,12 @@ import { RateLimiterService } from './infra/rate-limiter/rate-limiter-redis.serv
 
 import { isDev } from './common/utils';
 import { TicketingModule } from './modules/ticketing/ticketing.module';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { DebugModule } from './debug/debug.module';
+import { AdminUsersModule } from './modules/admin/admin-users/admin-users.module';
+import { UsersModule } from './modules/users/users.module';
+import { AdminBookingsModule } from './modules/admin/admin-bookings/admin-bookings.module';
+import { AdminPaymentsModule } from './modules/admin/admin-payments/admin-payments.module';
+import { AdminDashboardModule } from './modules/admin/admin-dashboard/admin-dashboard.module';
 
 @Module({
   imports: [
@@ -61,6 +67,8 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
       },
     }),
 
+    SentryModule.forRoot(),
+
     InfraModule,
     RedisModule,
     MailModule,
@@ -85,22 +93,30 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     }),
 
     AuthModule,
-    UsersModule,
     FlightsModule,
     BookingsModule,
     PaymentsModule,
     AirportsModule,
     SeatMapModule,
     TicketingModule,
+    DebugModule,
+    AdminUsersModule,
+    UsersModule,
+    AdminBookingsModule,
+    AdminPaymentsModule,
+    AdminDashboardModule,
   ],
 
   providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
     RateLimiterService,
     {
       provide: APP_GUARD,
       useClass: RateLimitGuard,
     },
-    GlobalExceptionFilter,
   ],
 })
 export class AppModule {}
