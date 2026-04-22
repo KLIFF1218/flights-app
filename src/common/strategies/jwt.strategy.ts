@@ -23,11 +23,22 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       where: {
         id: payload.id,
       },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        vkId: true,
+        status: true,
+        phone: true,
+        role: true,
+      },
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException('User not found');
     }
+
     return user;
   }
 }
