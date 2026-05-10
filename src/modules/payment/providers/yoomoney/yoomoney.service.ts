@@ -1,28 +1,30 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Booking, Transaction, TransactionStatus } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
 import {
   ConfirmationEnum,
   CurrencyEnum,
   PaymentMethodsEnum,
   YookassaService,
 } from 'nestjs-yookassa';
-import { YooKassaWebhookDto } from '../../webhook/dto/yookassa-webhook.dto';
-import { PaymentWebhookResult } from '../../interfaces/payment-webhook-result.dto';
+import { Currency, TransactionStatus } from '@prisma/client';
 import ipRangeCheck from 'ip-range-check';
+import { PaymentProviderAdapter } from '../../interfaces/payment.provider.interface';
+import { PaymentWebhookResult } from '../../interfaces/payment-webhook-result.dto';
+import { YooKassaWebhookDto } from '../../webhook/dto/yookassa-webhook.dto';
+import { Logger } from 'nestjs-pino';
 
 @Injectable()
-export class YoomoneyService {
-  private logger = new Logger(YoomoneyService.name);
-  private APP_HOST: string;
-  private API_ALLOWS: string[];
+export class YookassaProvider implements PaymentProviderAdapter {
+  private readonly appHost: string;
+  private readonly allowedIps: string[];
+
   constructor(
-    private readonly yookassaService: YookassaService,
-    private readonly configService: ConfigService,
+    private readonly yookassa: YookassaService,
+    private readonly config: ConfigService,
+    private readonly logger: Logger,
   ) {
-    this.APP_HOST = configService.getOrThrow<string>('APP_HOST');
-    this.API_ALLOWS = [
+    this.appHost = this.config.getOrThrow<string>('APP_HOST');
+    this.allowedIps = [
       '185.71.76.0/27',
       '185.71.77.0/27',
       '77.75.153.0/25',
@@ -32,72 +34,133 @@ export class YoomoneyService {
       '2a02:5180::/32',
     ];
   }
-  async createPayment(
-    amount: Decimal,
-    transactionId: string,
-    bookingId: string,
-  ) {
-    const successUrl = `${this.APP_HOST}/payment/${transactionId}/success`;
-    const capture = this.configService.get<boolean>('YOOKASSA_CAPTURE', false);
-    const payment = await this.yookassaService.payments.create({
-      amount: {
-        currency: CurrencyEnum.RUB,
-        value: amount.toNumber(),
-      },
-      description: 'Оплата авиабилета',
-      save_payment_method: true,
-      payment_method_data: { type: PaymentMethodsEnum.BANK_CARD },
-      confirmation: { type: ConfirmationEnum.REDIRECT, return_url: successUrl },
-      capture,
-      metadata: {
-        transactionId,
-        bookingId,
-      },
-    });
-    return payment;
+
+  async createPayment(params: {
+    transactionId: string;
+    amount: number;
+    currency: Currency;
+    idempotencyKey: string;
+  }): Promise<{
+    externalId: string;
+    redirectUrl: string;
+    meta?: unknown;
+  }> {
+    const returnUrl = `${this.appHost}/payment/${params.transactionId}/success`;
+
+    try {
+      const payment = await this.yookassa.payments.create({
+        amount: {
+          value: Number(params.amount.toFixed(2)),
+          currency: this.mapCurrency(params.currency),
+        },
+        description: 'Оплата бронирования',
+        payment_method_data: {
+          type: PaymentMethodsEnum.BANK_CARD,
+        },
+        confirmation: {
+          type: ConfirmationEnum.REDIRECT,
+          return_url: returnUrl,
+        },
+        capture: false,
+        metadata: {
+          transactionId: params.transactionId,
+          bookingId: params.transactionId, // TODO: pass actual booking ID
+        },
+      });
+
+      const confirmationUrl =
+        (payment.confirmation as any)?.confirmation_url ||
+        (payment.confirmation as any)?.return_url ||
+        returnUrl;
+
+      return {
+        externalId: payment.id,
+        redirectUrl: confirmationUrl,
+        meta: payment,
+      };
+    } catch (error) {
+      this.logger.error(
+        { error, transactionId: params.transactionId },
+        'YooKassa createPayment failed',
+      );
+
+      throw new ForbiddenException('Не удалось создать платеж');
+    }
   }
 
-  async handleWebhook(dto: YooKassaWebhookDto): Promise<PaymentWebhookResult> {
-    const transactionId = dto.object.metadata.transactionId;
-    const bookingId = dto.object.metadata.bookingId;
-    const paymentId = dto.object.id;
+  async getPayment(paymentId: string) {
+    return this.yookassa.payments.getById(paymentId);
+  }
+
+  async capturePayment(paymentId: string) {
+    return this.yookassa.payments.capture(paymentId);
+  }
+
+  async cancelPayment(paymentId: string) {
+    return this.yookassa.payments.cancel(paymentId);
+  }
+
+  async refundPayment(paymentId: string) {
+    return this.yookassa.refunds.create({
+      payment_id: paymentId,
+    });
+  }
+
+  async handleWebhook(payload: YooKassaWebhookDto): Promise<PaymentWebhookResult> {
+    const transactionId = payload.object.metadata?.transactionId;
+    const paymentId = payload.object.id;
+    const bookingId = payload.object.metadata?.bookingId;
+
+    if (!transactionId || !bookingId) {
+      this.logger.warn('Webhook without transactionId or bookingId', payload);
+      throw new ForbiddenException('Invalid webhook payload');
+    }
+
     let status: TransactionStatus = TransactionStatus.PENDING;
-    console.log('webhook event:', dto.event);
-    switch (dto.event) {
+
+    switch (payload.event) {
       case 'payment.waiting_for_capture':
         try {
-          await this.yookassaService.payments.capture(paymentId);
-          this.logger.log('Платеж захвачен: ', paymentId);
-        } catch (error) {
-          this.logger.error('Ошибка при захвате платежа: ', error);
+          await this.capturePayment(paymentId);
+          status = TransactionStatus.AUTHORIZED;
+        } catch (err) {
+          this.logger.error({ err, paymentId }, 'Auto-capture failed');
+          status = TransactionStatus.AUTHORIZED;
         }
         break;
-      case 'payment.succeeded': {
+      case 'payment.succeeded':
         status = TransactionStatus.SUCCEED;
         break;
-      }
-      case 'payment.canceled': {
+
+      case 'payment.canceled':
         status = TransactionStatus.CANCELED;
         break;
-      }
+
       default:
-        this.logger.warn('Необрабатываемое событие webhook: ', dto.event);
+        this.logger.log(`Unhandled YooKassa event: ${payload.event}`);
     }
 
     return {
       transactionId,
-      bookingId,
       paymentId,
+      bookingId,
       status,
     };
   }
 
-  verifyWebhook(ip: string) {
-    const allowed = ipRangeCheck(ip, this.API_ALLOWS);
-    if (!allowed) {
-      this.logger.debug('Неавторизованный IP-адрес webhook: ', ip);
-      throw new ForbiddenException('Неавторизованный IP-адрес');
+  verifyWebhookIp(ip: string): void {
+    if (!ipRangeCheck(ip, this.allowedIps)) {
+      this.logger.warn(`Unauthorized YooKassa IP: ${ip}`);
+      throw new ForbiddenException('Unauthorized webhook source');
     }
-    return;
+  }
+
+  private mapCurrency(currency: Currency): CurrencyEnum {
+    switch (currency) {
+      case Currency.RUB:
+        return CurrencyEnum.RUB;
+      default:
+        throw new Error(`Unsupported currency for YooKassa: ${currency}`);
+    }
   }
 }
