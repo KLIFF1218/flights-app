@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { TicketingService } from './ticketing.service';
-import { TicketingController } from './ticketing.controller';
+import { TicketingService } from './services/ticketing.service';
+import { TicketingController } from './controllers/ticketing.controller';
 import { BullModule } from '@nestjs/bullmq';
 import { PdfModule } from 'src/infra/pdf/pdf.module';
 import { S3Module } from 'src/infra/storage/s3.module';
+import { TicketingProcessor } from './ticketing.processor';
+import { MailModule } from 'src/infra/mail/mail.module';
 
 @Module({
   imports: [
@@ -21,9 +23,10 @@ import { S3Module } from 'src/infra/storage/s3.module';
     }),
     PdfModule,
     S3Module,
+    MailModule,
   ],
   controllers: [TicketingController],
-  providers: [TicketingService],
+  providers: [TicketingService, TicketingProcessor],
   exports: [BullModule, TicketingService],
 })
 export class TicketingModule {}
