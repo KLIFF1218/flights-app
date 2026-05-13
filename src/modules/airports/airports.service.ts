@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/infra/prisma/prisma.service';
 import { CreateAirportDto } from './dto/create-airport.dto';
 
@@ -27,11 +27,15 @@ export class AirportsService {
   }
 
   async findOne(airportId: string) {
-    return await this.prismaService.airport.findUnique({
+    const airport = await this.prismaService.airport.findUnique({
       where: {
         id: airportId,
       },
     });
+
+    if (!airport) throw new NotFoundException('Аэропорт не найден');
+
+    return airport;
   }
 
   async findAll() {

@@ -1,6 +1,14 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { Request } from 'express';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -12,11 +20,16 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    const { user } = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<Request & { user: User | undefined }>();
+
+    const user = req.user;
     if (!user) throw new UnauthorizedException('User not found in request');
 
     if (!roles) return true;
 
-    return roles.includes(user.role);
+    if (!roles.includes(user.role)) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+    return true;
   }
 }

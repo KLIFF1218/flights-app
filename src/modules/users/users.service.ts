@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/infra/prisma/prisma.service';
+import { PrismaService } from 'src/infra/db/prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
@@ -9,12 +9,19 @@ export class UsersService {
   }
 
   async getById(id: string) {
-    return this.prismaService.user.findUnique({
+    return await this.prismaService.user.findUnique({
       where: {
         id,
       },
     });
   }
+
+  async findByVkId(vkId: string) {
+    return this.prismaService.user.findUnique({
+      where: { vkId },
+    });
+  }
+
 
   async create(data: { email: string; password: string; fullName: string }) {
     return await this.prismaService.user.create({ data });
